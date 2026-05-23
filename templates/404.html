@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}404 — Page Not Found{% endblock %}
+{% block content %}
+
+<div style="
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  padding: 2rem;
+">
+  <div style="font-size: 5rem; margin-bottom: 1rem;">🔍</div>
+  <h1 style="
+    font-family: 'Syne', sans-serif;
+    font-size: 3rem;
+    font-weight: 800;
+    color: #f97316;
+    margin-bottom: .5rem;
+  ">404</h1>
+  <p style="color: #7a7f8e; font-size: 1.1rem; margin-bottom: 2rem;">
+    Oops! This page doesn't exist.
+  </p>
+  <a href="{{ url_for('dashboard') }}" class="btn-primary">
+    🏠 Go to Dashboard
+  </a>
+</div>
+
+{% endblock %}

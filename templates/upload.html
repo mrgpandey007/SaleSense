@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Upload Data — SaleSense{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Upload Data</h1>
+    <p class="page-sub">Upload your CSV sales data to get started</p>
+  </div>
+</div>
+
+<div class="upload-layout">
+
+  <!-- Upload Card -->
+  <div class="card upload-card">
+    <div class="upload-zone" id="dropZone">
+      <div class="upload-icon">📂</div>
+      <h3>Drop your CSV here</h3>
+      <p>or click to browse files</p>
+      <input type="file" id="fileInput" accept=".csv" style="display:none"/>
+      <div id="fileSelected" class="file-selected hidden"></div>
+    </div>
+    <form method="POST" enctype="multipart/form-data" id="uploadForm">
+      <input type="file" name="file" id="hiddenFile" accept=".csv" style="display:none"/>
+      <button type="submit" class="btn-primary btn-full" id="uploadBtn" disabled>
+        Upload & Process →
+      </button>
+    </form>
+  </div>
+
+  <!-- Format Guide Card -->
+  <div class="card">
+    <div class="card-header"><h3>📋 CSV Format Guide</h3></div>
+    <p style="color:#aaa;margin-bottom:1rem;">Your CSV should have at least these columns:</p>
+    <table class="format-table">
+      <thead>
+        <tr><th>Column</th><th>Type</th><th>Example</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>date</td><td>Date</td><td>2024-01-01</td></tr>
+        <tr><td>sales</td><td>Number</td><td>15000</td></tr>
+        <tr><td>product <em>(optional)</em></td><td>Text</td><td>Product A</td></tr>
+        <tr><td>region <em>(optional)</em></td><td>Text</td><td>North</td></tr>
+      </tbody>
+    </table>
+    <div class="sample-note">
+      <strong>Sample row:</strong><br/>
+      <code>2024-01-01, 15000, Product A, North</code>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const dropZone    = document.getElementById("dropZone");
+const fileInput   = document.getElementById("fileInput");
+const hiddenFile  = document.getElementById("hiddenFile");
+const uploadBtn   = document.getElementById("uploadBtn");
+const fileSelected = document.getElementById("fileSelected");
+
+// Click to browse
+dropZone.addEventListener("click", () => fileInput.click());
+
+// Drag over effect
+dropZone.addEventListener("dragover", e => {
+  e.preventDefault();
+  dropZone.classList.add("drag-over");
+});
+dropZone.addEventListener("dragleave", () => {
+  dropZone.classList.remove("drag-over");
+});
+
+// Drop file
+dropZone.addEventListener("drop", e => {
+  e.preventDefault();
+  dropZone.classList.remove("drag-over");
+  const f = e.dataTransfer.files[0];
+  if (f && f.name.endsWith(".csv")) setFile(f);
+});
+
+// File selected from browse
+fileInput.addEventListener("change", () => {
+  if (fileInput.files[0]) setFile(fileInput.files[0]);
+});
+
+function setFile(f) {
+  const dt = new DataTransfer();
+  dt.items.add(f);
+  hiddenFile.files = dt.files;
+  fileSelected.textContent = "✅ " + f.name + " (" + (f.size/1024).toFixed(1) + " KB)";
+  fileSelected.classList.remove("hidden");
+  uploadBtn.disabled = false;
+}
+</script>
+{% endblock %}

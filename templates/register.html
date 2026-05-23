@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block scripts %}
+<script>
+function validateForm() {
+  const username = document.querySelector('input[name="username"]').value.trim();
+  const email    = document.querySelector('input[name="email"]').value.trim();
+  const password = document.querySelector('input[name="password"]').value.trim();
+  const confirm  = document.querySelector('input[name="confirm"]').value.trim();
+
+  // Username validation
+  if (username.length < 3) {
+    alert("Username must be at least 3 characters!");
+    return false;
+  }
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+    alert("Username can only contain letters, numbers and underscore!");
+    return false;
+  }
+
+  // Email validation — strict format check
+  const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,6}$/;
+  if (!emailRegex.test(email)) {
+    alert("Please enter a valid email address!\nExample: name@gmail.com");
+    return false;
+  }
+
+  // Password validation
+  if (password.length < 6) {
+    alert("Password must be at least 6 characters!");
+    return false;
+  }
+
+  // Confirm password
+  if (password !== confirm) {
+    alert("Passwords do not match!");
+    return false;
+  }
+
+  return true;
+}
+</script>
+{% endblock %}
+{% block content %}
+
+<div class="auth-wrapper">
+  <div class="auth-left">
+    <div class="auth-brand">
+      <div class="brand-icon">📈</div>
+      <h1>SaleSense</h1>
+      <p>Create your account.<br/>Start predicting sales.</p>
+    </div>
+    <div class="auth-features">
+      <div class="feat"><span>📊</span> Interactive Charts</div>
+      <div class="feat"><span>📂</span> Your Own Private Data</div>
+      <div class="feat"><span>🔐</span> Secure & Private</div>
+      <div class="feat"><span>🤖</span> Free of cost </div>
+    </div>
+  </div>
+
+  <div class="auth-right">
+    <div class="auth-card">
+      <h2>Create Account</h2>
+      <p class="auth-sub">Join SaleSense for free</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for cat, msg in messages %}
+            <div class="flash flash-{{ cat }}">{{ msg }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" name="username"
+                 placeholder="Enter username (min 3 chars)"
+                 required minlength="3"/>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email"
+                 placeholder="Enter your email"
+                 required/>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" name="password"
+                 placeholder="Min 6 characters"
+                 required minlength="6"/>
+        </div>
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <input type="password" name="confirm"
+                 placeholder="Re-enter password"
+                 required minlength="6"/>
+        </div>
+        <button type="submit" class="btn-primary btn-full" onclick="return validateForm()">
+  Create Account →
+</button>
+      </form>
+
+      <p class="auth-hint">
+        Already have an account?
+        <a href="{{ url_for('login') }}"
+           style="color:#f97316;text-decoration:none;">
+          Sign In
+        </a>
+      </p>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

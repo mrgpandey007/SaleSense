@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — SaleSense{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-sub">Welcome back, <strong>{{ user }}</strong> 👋</p>
+  </div>
+  <a href="{{ url_for('upload') }}" class="btn-primary">+ Upload Data</a>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Total Sales</div>
+    <div class="stat-value" id="s-total">Loading...</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Average Sales</div>
+    <div class="stat-value" id="s-avg">Loading...</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Peak Sales</div>
+    <div class="stat-value" id="s-max">Loading...</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Data Points</div>
+    <div class="stat-value" id="s-count">Loading...</div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="cards-row">
+  <div class="card wide">
+    <div class="card-header"><h3>Sales Overview</h3></div>
+    <canvas id="overviewChart" height="100"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Quick Actions</h3></div>
+    <div class="quick-actions">
+      <a href="{{ url_for('upload') }}"  class="qa-btn">📂 Upload CSV</a>
+      <a href="{{ url_for('predict') }}" class="qa-btn">🔮 Run Prediction</a>
+      <a href="{{ url_for('charts') }}"  class="qa-btn">📊 View Charts</a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadDashboard() {
+  try {
+    const res  = await fetch("/api/summary");
+    const data = await res.json();
+    if (!data.success) {
+      document.getElementById("s-total").textContent = "No data";
+      document.getElementById("s-avg").textContent   = "No data";
+      document.getElementById("s-max").textContent   = "No data";
+      document.getElementById("s-count").textContent = "No data";
+      return;
+    }
+    const s = data.summary;
+    document.getElementById("s-total").textContent = "₹" + s.total_sales.toLocaleString();
+    document.getElementById("s-avg").textContent   = "₹" + s.avg_sales.toLocaleString();
+    document.getElementById("s-max").textContent   = "₹" + s.max_sales.toLocaleString();
+    document.getElementById("s-count").textContent = s.num_records;
+  } catch(e) {
+    document.querySelectorAll(".stat-value").forEach(el => el.textContent = "No data");
+  }
+
+  try {
+    const res2 = await fetch("/api/chart-data?type=monthly");
+    const cd   = await res2.json();
+    if (!cd.success) return;
+    const ctx = document.getElementById("overviewChart").getContext("2d");
+    new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: cd.labels,
+        datasets: [{
+          label: "Sales",
+          data: cd.values,
+          borderColor: "#f97316",
+          backgroundColor: "rgba(249,115,22,0.1)",
+          fill: true,
+          tension: 0.4,
+          pointRadius: 4,
+          pointBackgroundColor: "#f97316"
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#aaa" } },
+          y: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#aaa" } }
+        }
+      }
+    });
+  } catch(e) {}
+}
+loadDashboard();
+</script>
+{% endblock %}

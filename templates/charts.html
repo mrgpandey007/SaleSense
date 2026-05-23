@@ -1,0 +1,132 @@
+
+{% extends "base.html" %}
+{% block title %}Charts — SaleSense{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Analytics Charts</h1>
+    <p class="page-sub">Visual breakdown of your sales data</p>
+  </div>
+</div>
+
+<!-- Chart Tabs -->
+<div class="chart-tabs">
+  <button class="tab-btn active" onclick="loadChart('monthly', this)">Monthly</button>
+  <button class="tab-btn" onclick="loadChart('quarterly', this)">Quarterly</button>
+  <button class="tab-btn" onclick="loadChart('yearly', this)">Yearly</button>
+  <button class="tab-btn" onclick="loadChart('growth', this)">Growth %</button>
+</div>
+
+<!-- Charts Row -->
+<div class="cards-row">
+  <div class="card wide">
+    <div class="card-header">
+      <h3 id="chartTitle">Monthly Sales</h3>
+    </div>
+    <canvas id="mainChart" height="100"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Sales Distribution</h3></div>
+    <div id="distStats"></div>
+  </div>
+</div>
+
+<!-- Bar Chart -->
+<div class="card" style="margin-top:1.5rem">
+  <div class="card-header"><h3>Bar Comparison</h3></div>
+  <canvas id="barChart" height="90"></canvas>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let mainChart = null;
+let barChart  = null;
+
+async function loadChart(type, btn) {
+  // Update active tab
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+
+  const res  = await fetch(`/api/chart-data?type=${type}`);
+  const data = await res.json();
+  if (!data.success) return;
+
+  document.getElementById("chartTitle").textContent = data.title;
+
+  const colors = data.values.map(v =>
+    v >= 0 ? "rgba(249,115,22,0.8)" : "rgba(239,68,68,0.8)"
+  );
+
+  // Line chart
+  if (mainChart) mainChart.destroy();
+  const ctx1 = document.getElementById("mainChart").getContext("2d");
+  mainChart  = new Chart(ctx1, {
+    type: "line",
+    data: {
+      labels: data.labels,
+      datasets: [{
+        label: data.title,
+        data:  data.values,
+        borderColor: "#f97316",
+        backgroundColor: "rgba(249,115,22,0.1)",
+        fill: true, tension: 0.4, pointRadius: 4,
+        pointBackgroundColor: "#f97316"
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: "#ccc" } } },
+      scales: {
+        x: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#aaa" } },
+        y: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#aaa" } }
+      }
+    }
+  });
+
+  // Bar chart
+  if (barChart) barChart.destroy();
+  const ctx2 = document.getElementById("barChart").getContext("2d");
+  barChart   = new Chart(ctx2, {
+    type: "bar",
+    data: {
+      labels: data.labels,
+      datasets: [{
+        label: data.title,
+        data:  data.values,
+        backgroundColor: colors,
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: "#ccc" } } },
+      scales: {
+        x: { grid: { color: "rgba(255,255,255,0.03)" }, ticks: { color: "#aaa" } },
+        y: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#aaa" } }
+      }
+    }
+  });
+}
+
+async function loadDistribution() {
+  const res  = await fetch("/api/chart-data?type=distribution");
+  const data = await res.json();
+  if (!data.success) return;
+  const s = data.stats;
+  document.getElementById("distStats").innerHTML = `
+    <div class="dist-item"><span>Min</span><strong>₹${s.min.toLocaleString()}</strong></div>
+    <div class="dist-item"><span>Q1 (25%)</span><strong>₹${s.q1.toLocaleString()}</strong></div>
+    <div class="dist-item"><span>Median</span><strong>₹${s.median.toLocaleString()}</strong></div>
+    <div class="dist-item"><span>Mean</span><strong>₹${s.mean.toLocaleString()}</strong></div>
+    <div class="dist-item"><span>Q3 (75%)</span><strong>₹${s.q3.toLocaleString()}</strong></div>
+    <div class="dist-item"><span>Max</span><strong>₹${s.max.toLocaleString()}</strong></div>
+  `;
+}
+
+loadChart("monthly", null);
+loadDistribution();
+</script>
+{% endblock %}

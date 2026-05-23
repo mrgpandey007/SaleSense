@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Predict — SaleSense{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Sales Prediction</h1>
+    <p class="page-sub">Sales forecast using your historical data</p>
+  </div>
+</div>
+
+<div class="predict-layout">
+
+  <!-- Controls Card -->
+  <div class="card control-card">
+    <h3 style="font-family:'Syne',sans-serif;margin-bottom:1.25rem;">⚙️ Settings</h3>
+    <div class="form-group">
+      <label>Forecast Periods (months)</label>
+      <input type="range" id="periodsSlider" min="1" max="24" value="6"/>
+      <div class="slider-val"><span id="periodsVal">6</span> months</div>
+    </div>
+    <button class="btn-primary btn-full" id="runBtn" onclick="runPrediction()">
+      🔮 Run Prediction
+    </button>
+    <div id="modelBadge" class="model-badge hidden"></div>
+  </div>
+
+  <!-- Metrics Card -->
+  <div class="card metrics-card">
+    <h3 style="font-family:'Syne',sans-serif;margin-bottom:1.25rem;">📐 Model Metrics</h3>
+    <div id="metricsContent">
+      <p style="color:#aaa">Click Run Prediction to see metrics</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Prediction Chart -->
+<div class="card" style="margin-top:1.5rem;">
+  <div class="card-header"><h3>📈 Prediction Chart</h3></div>
+  <div id="chartLoader" class="chart-loader hidden">
+    <div class="spinner"></div>
+    <p>Training model...</p>
+  </div>
+  <canvas id="predChart" height="90"></canvas>
+</div>
+
+<!-- Prediction Table -->
+<div class="card" id="predTableCard" style="margin-top:1.5rem;display:none">
+  <div class="card-header"><h3>📋 Predicted Values</h3></div>
+  <div id="predTable"></div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const slider     = document.getElementById("periodsSlider");
+const periodsVal = document.getElementById("periodsVal");
+slider.addEventListener("input", () => periodsVal.textContent = slider.value);
+
+let predChart = null;
+
+async function runPrediction() {
+  const btn    = document.getElementById("runBtn");
+  const loader = document.getElementById("chartLoader");
+  btn.disabled     = true;
+  btn.textContent  = "⏳ Running...";
+  loader.classList.remove("hidden");
+
+  try {
+    const periods = parseInt(slider.value);
+    const res     = await fetch("/api/predict", {
+      method:  "POST",
+      headers: {"Content-Type": "application/json"},
+      body:    JSON.stringify({periods})
+    });
+    const data = await res.json();
+    if (!data.success) { alert("Error: " + data.error); return; }
+
+    // Show model badge
+    const badge = document.getElementById("modelBadge");
+    badge.textContent = "Model: " + data.model_type;
+    badge.classList.remove("hidden");
+
+    // Build chart labels and data
+    const labels   = [...data.historical.labels, ...data.predictions.labels];
+    const histVals = [...data.historical.values, ...Array(data.predictions.values.length).fill(null)];
+    const predVals = [...Array(data.historical.values.length).fill(null), ...data.predictions.values];
+
+    if (predChart) predChart.destroy();
+    const ctx = document.getElementById("predChart").getContext("2d");
+    predChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Historical",
+            data:  histVals,
+            borderColor: "#f97316",
+            backgroundColor: "rgba(249,115,22,0.15)",
+            fill: true, tension: 0.4, pointRadius: 3
+          },
+          {
+            label: "Predicted",
+            data:  predVals,
+            borderColor: "#22d3ee",
+            backgroundColor: "rgba(34,211,238,0.1)",
+            fill: true, tension: 0.4, pointRadius: 4,
+            borderDash: [6, 3]
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: "#ccc" } } },
+        scales: {
+          x: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#aaa" } },
+          y: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#aaa" } }
+        }
+      }
+    });
+
+    // Build prediction table
+    let html = '<table class="pred-table"><thead><tr><th>Period</th><th>Predicted Sales</th></tr></thead><tbody>';
+    data.predictions.labels.forEach((l, i) => {
+      html += `<tr><td>${l}</td><td>₹${data.predictions.values[i].toLocaleString()}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById("predTable").innerHTML = html;
+    document.getElementById("predTableCard").style.display = "block";
+
+  } catch(e) {
+    alert("Error: " + e.message);
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = "🔮 Run Prediction";
+    loader.classList.add("hidden");
+  }
+
+  // Load metrics
+  try {
+    const mres  = await fetch("/api/metrics");
+    const mdata = await mres.json();
+    if (!mdata.success) return;
+    let mhtml = '<table class="pred-table"><thead><tr><th>Model</th><th>MAE</th><th>RMSE</th><th>R²</th></tr></thead><tbody>';
+    mdata.metrics.forEach(m => {
+      mhtml += `<tr><td>${m.model}</td><td>${m.mae}</td><td>${m.rmse}</td><td>${m.r2}</td></tr>`;
+    });
+    mhtml += '</tbody></table>';
+    document.getElementById("metricsContent").innerHTML = mhtml;
+  } catch(e) {}
+}
+</script>
+{% endblock %}

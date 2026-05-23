@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}SaleSense{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<!-- Page loader -->
+<div id="pageLoader" style="
+  position:fixed;top:0;left:0;width:100%;height:3px;
+  background:linear-gradient(90deg,#f97316,#22d3ee);
+  z-index:9999;animation:loadBar 1s ease forwards;">
+</div>
+<style>
+@keyframes loadBar {
+  from { width: 0%; opacity: 1; }
+  to   { width: 100%; opacity: 0; }
+}
+</style>
+{% if session.get('user_id') %}
+<nav class="sidebar">
+  <div class="sidebar-logo">
+  <span class="logo-icon">📈</span>
+  <span class="logo-text">SaleSense</span>
+</div>
+  <ul class="sidebar-nav">
+    <li><a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">
+      <span class="nav-icon">🏠</span> Dashboard
+    </a></li>
+    <li><a href="{{ url_for('upload') }}" class="nav-link {% if request.endpoint=='upload' %}active{% endif %}">
+      <span class="nav-icon">📂</span> Upload Data
+    </a></li>
+    <li><a href="{{ url_for('predict') }}" class="nav-link {% if request.endpoint=='predict' %}active{% endif %}">
+      <span class="nav-icon">🔮</span> Predict
+    </a></li>
+    <li><a href="{{ url_for('charts') }}" class="nav-link {% if request.endpoint=='charts' %}active{% endif %}">
+      <span class="nav-icon">📊</span> Charts
+    </a></li>
+  </ul>
+  <div class="sidebar-footer">
+    <span class="user-badge">👤 {{ session.username }}</span>
+    <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+  </div>
+</nav>
+<div class="main-content">
+{% endif %}
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for cat, msg in messages %}
+          <div class="flash flash-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+
+{% if session.get('user_id') %}
+</div>
+{% endif %}
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+<script>
+// Remove page loader after load
+window.addEventListener("load", () => {
+  const loader = document.getElementById("pageLoader");
+  if (loader) loader.remove();
+});
+</script>
+</body>
+</html>
